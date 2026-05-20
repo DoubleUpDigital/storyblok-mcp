@@ -4,7 +4,6 @@ import { createContext } from "./utils.js";
 import { storyblok } from "./storyblok.js";
 
 const HEADER_MGMT_TOKEN = "x-storyblok-token";
-const HEADER_PUBLIC_TOKEN = "x-storyblok-public-token";
 const HEADER_SPACE_ID = "x-storyblok-space-id";
 
 function jsonRpcError(message: string, status: number): Response {
@@ -31,7 +30,7 @@ export default {
           name: "punch-storyblok-mcp",
           status: "ok",
           mcp_endpoint: "/mcp",
-          required_headers: [HEADER_MGMT_TOKEN, HEADER_PUBLIC_TOKEN, HEADER_SPACE_ID],
+          required_headers: [HEADER_MGMT_TOKEN, HEADER_SPACE_ID],
         }),
         { headers: { "content-type": "application/json" } },
       );
@@ -42,17 +41,16 @@ export default {
     }
 
     const managementToken = request.headers.get(HEADER_MGMT_TOKEN);
-    const publicToken = request.headers.get(HEADER_PUBLIC_TOKEN);
     const spaceId = request.headers.get(HEADER_SPACE_ID);
 
-    if (!managementToken || !publicToken || !spaceId) {
+    if (!managementToken || !spaceId) {
       return jsonRpcError(
-        `Missing required headers. Set ${HEADER_MGMT_TOKEN}, ${HEADER_PUBLIC_TOKEN}, and ${HEADER_SPACE_ID}.`,
+        `Missing required headers. Set ${HEADER_MGMT_TOKEN} and ${HEADER_SPACE_ID}.`,
         401,
       );
     }
 
-    const ctx = createContext({ managementToken, publicToken, spaceId });
+    const ctx = createContext({ managementToken, spaceId });
 
     const server = new McpServer({
       name: "punch-storyblok-mcp",

@@ -16,15 +16,16 @@ Forked from [`ArjunCodess/storyblok-mcp`](https://github.com/ArjunCodess/storybl
 
 ## How it works
 
-Every request must include three headers:
+Every request must include two headers:
 
 | Header | Purpose |
 |---|---|
 | `X-Storyblok-Token` | Storyblok Personal Access Token from [app.storyblok.com → My Account](https://app.storyblok.com/#/me/account) |
-| `X-Storyblok-Public-Token` | Public CDN token for the target space |
 | `X-Storyblok-Space-Id` | Numeric space ID |
 
-The Worker passes these through to Storyblok on every API call. Teammates supply their own tokens via env vars (`STORYBLOK_MANAGEMENT_TOKEN`, `STORYBLOK_PUBLIC_TOKEN`, `STORYBLOK_SPACE_ID`) — see the plugin README for setup.
+The Worker passes these through to Storyblok on every API call. Teammates supply their own tokens via env vars (`STORYBLOK_MANAGEMENT_TOKEN`, `STORYBLOK_SPACE_ID`) — see the plugin README for setup.
+
+All tools route through Storyblok's Management API (`mapi.storyblok.com`). The upstream's CDN/public-token path is intentionally not used here — for editorial workflows you want draft-aware reads, not cached published content.
 
 `GET /health` returns server status without requiring auth.
 

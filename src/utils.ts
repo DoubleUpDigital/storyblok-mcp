@@ -10,7 +10,6 @@ export interface SbApi {
 
 export interface SbContext {
   managementToken: string;
-  publicToken: string;
   spaceId: string;
   managementBase: string;
   api: SbApi;
@@ -74,7 +73,6 @@ const api: SbApi = {
 
 export function createContext(opts: {
   managementToken: string;
-  publicToken: string;
   spaceId: string;
 }): SbContext {
   return {

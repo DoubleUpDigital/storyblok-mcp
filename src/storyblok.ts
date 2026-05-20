@@ -1,12 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CDN_BASE, SPACES_BASE, buildURL, getHeaders, toQuery, type SbContext } from "./utils.js";
+import { SPACES_BASE, buildURL, getHeaders, toQuery, type SbContext } from "./utils.js";
 
 export function storyblok(server: McpServer, ctx: SbContext) {
-  const { api, managementBase, managementToken, publicToken, spaceId } = ctx;
+  const { api, managementBase, managementToken, spaceId } = ctx;
   server.tool('ping', {}, async () => {
     try {
-      await api.get(`${CDN_BASE}/spaces/${spaceId}?token=${publicToken}`);
+      await api.get(managementBase, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: 'Server is running and Storyblok API is reachable.' }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -23,8 +23,8 @@ export function storyblok(server: McpServer, ctx: SbContext) {
     search_term: z.string().optional()
   }, async (params) => {
     try {
-      const q = toQuery({ ...params, token: publicToken });
-      const res = await api.get(`${CDN_BASE}/stories${q}`);
+      const q = toQuery(params);
+      const res = await api.get(buildURL(managementBase, `stories${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -33,8 +33,7 @@ export function storyblok(server: McpServer, ctx: SbContext) {
 
   server.tool('get_story', { id: z.string() }, async ({ id }) => {
     try {
-      const q = toQuery({ token: publicToken });
-      const res = await api.get(`${CDN_BASE}/stories/${id}${q}`);
+      const res = await api.get(buildURL(managementBase, `stories/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -461,8 +460,8 @@ export function storyblok(server: McpServer, ctx: SbContext) {
     per_page: z.number().optional()
   }, async (params) => {
     try {
-      const q = toQuery({ ...params, token: publicToken });
-      const res = await api.get(`${CDN_BASE}/stories${q}`);
+      const q = toQuery(params);
+      const res = await api.get(buildURL(managementBase, `stories${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -471,9 +470,13 @@ export function storyblok(server: McpServer, ctx: SbContext) {
 
   server.tool('get_story_by_slug', { slug: z.string() }, async ({ slug }) => {
     try {
-      const q = toQuery({ token: publicToken });
-      const res = await api.get(`${CDN_BASE}/stories/${slug}${q}`);
-      return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
+      const q = toQuery({ with_slug: slug });
+      const res = await api.get(buildURL(managementBase, `stories${q}`), { headers: getHeaders(managementToken) });
+      const stories = res.data?.stories ?? [];
+      if (stories.length === 0) {
+        return { isError: true, content: [{ type: 'text', text: `No story found with slug: ${slug}` }] };
+      }
+      return { content: [{ type: 'text', text: JSON.stringify({ story: stories[0] }, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
     }
