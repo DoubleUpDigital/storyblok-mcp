@@ -1,14 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import axios from "axios";
-import { CDN_BASE, MANAGEMENT_BASE, MANAGEMENT_TOKEN, PUBLIC_TOKEN, SPACES_BASE, buildURL, getHeaders, toQuery } from "./utils.js";
-import { generateText, generateObject } from 'ai';
-import { google } from '@ai-sdk/google';
+import { CDN_BASE, SPACES_BASE, buildURL, getHeaders, toQuery, type SbContext } from "./utils.js";
 
-export function storyblok(server: McpServer) {
+export function storyblok(server: McpServer, ctx: SbContext) {
+  const { api, managementBase, managementToken, publicToken, spaceId } = ctx;
   server.tool('ping', {}, async () => {
     try {
-      await axios.get(`${CDN_BASE}/spaces/${process.env.STORYBLOK_SPACE_ID}?token=${PUBLIC_TOKEN}`);
+      await api.get(`${CDN_BASE}/spaces/${spaceId}?token=${publicToken}`);
       return { content: [{ type: 'text', text: 'Server is running and Storyblok API is reachable.' }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -25,8 +23,8 @@ export function storyblok(server: McpServer) {
     search_term: z.string().optional()
   }, async (params) => {
     try {
-      const q = toQuery({ ...params, token: PUBLIC_TOKEN });
-      const res = await axios.get(`${CDN_BASE}/stories${q}`);
+      const q = toQuery({ ...params, token: publicToken });
+      const res = await api.get(`${CDN_BASE}/stories${q}`);
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -35,8 +33,8 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_story', { id: z.string() }, async ({ id }) => {
     try {
-      const q = toQuery({ token: PUBLIC_TOKEN });
-      const res = await axios.get(`${CDN_BASE}/stories/${id}${q}`);
+      const q = toQuery({ token: publicToken });
+      const res = await api.get(`${CDN_BASE}/stories/${id}${q}`);
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -68,7 +66,7 @@ export function storyblok(server: McpServer) {
     favourite_for_user_ids: z.array(z.number()).optional()
   }, async (params) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'stories'), { story: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'stories'), { story: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -101,7 +99,7 @@ export function storyblok(server: McpServer) {
     favourite_for_user_ids: z.array(z.number()).optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `stories/${id}`), { story: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `stories/${id}`), { story: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -110,7 +108,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_story', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `stories/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `stories/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Story ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -119,7 +117,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('publish_story', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `stories/${id}/publish`), {}, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `stories/${id}/publish`), {}, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -128,7 +126,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('unpublish_story', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `stories/${id}/unpublish`), {}, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `stories/${id}/unpublish`), {}, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -137,7 +135,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_story_versions', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `stories/${id}/versions`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `stories/${id}/versions`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -146,7 +144,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('restore_story', { id: z.string(), version_id: z.string() }, async ({ id, version_id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `stories/${id}/restore/${version_id}`), {}, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `stories/${id}/restore/${version_id}`), {}, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -164,10 +162,10 @@ export function storyblok(server: McpServer) {
       if (lang_code) params.push(`lang_code=${encodeURIComponent(lang_code)}`);
       if (import_lang !== undefined) params.push(`import_lang=${import_lang}`);
       const query = params.length ? `?${params.join('&')}` : '';
-      const res = await axios.put(
-        buildURL(MANAGEMENT_BASE, `stories/${id}/import${query}`),
+      const res = await api.put(
+        buildURL(managementBase, `stories/${id}/import${query}`),
         { story },
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -177,7 +175,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_tags', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'tags'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'tags'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -186,7 +184,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('create_tag', { name: z.string() }, async ({ name }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'tags'), { name }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'tags'), { name }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -195,7 +193,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('create_tag_and_add_to_story', { name: z.string(), story_id: z.string() }, async ({ name, story_id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'tags'), { name, story_id }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'tags'), { name, story_id }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -204,7 +202,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_tag', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `tags/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `tags/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Tag ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -217,7 +215,7 @@ export function storyblok(server: McpServer) {
   }, async ({ page = 1, per_page = 25 }) => {
     try {
       const q = toQuery({ page, per_page });
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `releases${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `releases${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -237,7 +235,7 @@ export function storyblok(server: McpServer) {
       if (branches_to_deploy) body.branches_to_deploy = branches_to_deploy;
       if (timezone) body.timezone = timezone;
       if (users_to_notify_ids) body.users_to_notify_ids = users_to_notify_ids;
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'releases'), { release: body }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'releases'), { release: body }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -246,7 +244,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('add_story_to_release', { release_id: z.string(), story_id: z.string() }, async ({ release_id, story_id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `releases/${release_id}/stories`), { story_id }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `releases/${release_id}/stories`), { story_id }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -255,7 +253,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('publish_release', { release_id: z.string() }, async ({ release_id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `releases/${release_id}/publish`), {}, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `releases/${release_id}/publish`), {}, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -285,10 +283,10 @@ export function storyblok(server: McpServer) {
       
       if (do_release !== undefined) requestData.do_release = do_release;
       
-      const res = await axios.put(
-        buildURL(MANAGEMENT_BASE, `releases/${release_id}`), 
+      const res = await api.put(
+        buildURL(managementBase, `releases/${release_id}`), 
         requestData, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -298,7 +296,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_release', { release_id: z.string() }, async ({ release_id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `releases/${release_id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `releases/${release_id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Release ${release_id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -313,7 +311,7 @@ export function storyblok(server: McpServer) {
   }, async ({ page = 1, per_page = 25, search, folder_id }) => {
     try {
       const q = toQuery({ page, per_page, search, folder_id });
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `assets${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `assets${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -322,7 +320,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_asset', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `assets/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `assets/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -331,7 +329,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_asset', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `assets/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `assets/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Asset ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -340,7 +338,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('init_asset_upload', { filename: z.string(), size: z.number(), content_type: z.string() }, async ({ filename, size, content_type }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'assets'), { filename, size, content_type }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'assets'), { filename, size, content_type }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -349,7 +347,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('complete_asset_upload', { asset_id: z.string() }, async ({ asset_id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `assets/${asset_id}/finish_upload`), {}, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `assets/${asset_id}/finish_upload`), {}, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -358,7 +356,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_asset_folders', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'asset_folders'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'asset_folders'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -369,7 +367,7 @@ export function storyblok(server: McpServer) {
     try {
       const folderData: any = { name };
       if (parent_id !== undefined) folderData.parent_id = parent_id;
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'asset_folders'), { asset_folder: folderData }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'asset_folders'), { asset_folder: folderData }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -378,7 +376,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('update_asset_folder', { id: z.string(), name: z.string() }, async ({ id, name }) => {
     try {
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `asset_folders/${id}`), { asset_folder: { name } }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `asset_folders/${id}`), { asset_folder: { name } }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -387,7 +385,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_asset_folder', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `asset_folders/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `asset_folders/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Asset folder ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -400,7 +398,7 @@ export function storyblok(server: McpServer) {
     filter_by_name: z.string().optional()
   }, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'components'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'components'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -409,7 +407,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_component', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `components/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `components/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -419,7 +417,7 @@ export function storyblok(server: McpServer) {
   server.tool('create_component', { name: z.string(), display_name: z.string().optional(), schema: z.record(z.unknown()), is_root: z.boolean().optional(), is_nestable: z.boolean().optional() }, async ({ name, display_name, schema, is_root = false, is_nestable = true }) => {
     try {
       const componentData = { component: { name, display_name: display_name || name, schema, is_root, is_nestable } };
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'components'), componentData, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'components'), componentData, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -434,7 +432,7 @@ export function storyblok(server: McpServer) {
       if (schema !== undefined) updateData.schema = schema;
       if (is_root !== undefined) updateData.is_root = is_root;
       if (is_nestable !== undefined) updateData.is_nestable = is_nestable;
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `components/${id}`), { component: updateData }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `components/${id}`), { component: updateData }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -443,7 +441,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_component', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `components/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `components/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Component ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -463,8 +461,8 @@ export function storyblok(server: McpServer) {
     per_page: z.number().optional()
   }, async (params) => {
     try {
-      const q = toQuery({ ...params, token: PUBLIC_TOKEN });
-      const res = await axios.get(`${CDN_BASE}/stories${q}`);
+      const q = toQuery({ ...params, token: publicToken });
+      const res = await api.get(`${CDN_BASE}/stories${q}`);
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -473,8 +471,8 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_story_by_slug', { slug: z.string() }, async ({ slug }) => {
     try {
-      const q = toQuery({ token: PUBLIC_TOKEN });
-      const res = await axios.get(`${CDN_BASE}/stories/${slug}${q}`);
+      const q = toQuery({ token: publicToken });
+      const res = await api.get(`${CDN_BASE}/stories/${slug}${q}`);
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -483,7 +481,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_folders', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'stories?is_folder=true'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'stories?is_folder=true'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -496,7 +494,7 @@ export function storyblok(server: McpServer) {
   }, async ({ page = 1, per_page = 25 }) => {
     try {
       const q = toQuery({ page, per_page });
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `datasources${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `datasources${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -505,7 +503,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_datasource', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `datasources/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `datasources/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -523,7 +521,7 @@ export function storyblok(server: McpServer) {
     ).optional()
   }, async (params) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'datasources'), { datasource: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'datasources'), { datasource: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -542,7 +540,7 @@ export function storyblok(server: McpServer) {
     ).optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `datasources/${id}`), { datasource: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `datasources/${id}`), { datasource: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -551,7 +549,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_datasource', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `datasources/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `datasources/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Datasource ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -565,7 +563,7 @@ export function storyblok(server: McpServer) {
   }, async ({ datasource_id, page = 1, per_page = 25 }) => {
     try {
       const q = toQuery({ page, per_page });
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `datasources/${datasource_id}/entries${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `datasources/${datasource_id}/entries${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -576,7 +574,7 @@ export function storyblok(server: McpServer) {
     entry_id: z.string()
   }, async ({ entry_id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `datasource_entries/${entry_id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `datasource_entries/${entry_id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -592,7 +590,7 @@ export function storyblok(server: McpServer) {
     try {
       const entryData: any = { name, value, datasource_id };
       if (dimension_values) entryData.dimension_values = dimension_values;
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'datasource_entries'), { datasource_entry: entryData }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'datasource_entries'), { datasource_entry: entryData }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -615,7 +613,7 @@ export function storyblok(server: McpServer) {
       const payload: any = { datasource_entry: entryData };
       if (dimension_id !== undefined) payload.dimension_id = dimension_id;
       
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `datasource_entries/${entry_id}`), payload, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `datasource_entries/${entry_id}`), payload, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -626,94 +624,8 @@ export function storyblok(server: McpServer) {
     entry_id: z.string()
   }, async ({ entry_id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `datasource_entries/${entry_id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `datasource_entries/${entry_id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Datasource entry ${entry_id} has been successfully deleted.` }] };
-    } catch (error: any) {
-      return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
-    }
-  });
-
-  server.tool('generate_alt', {
-    asset_id: z.string()
-  }, async ({ asset_id }) => {
-    try {
-      const assetRes = await axios.get(buildURL(MANAGEMENT_BASE, `assets/${asset_id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
-      const asset = assetRes.data;
-      if (!asset || !asset.filename) {
-        return { isError: true, content: [{ type: 'text', text: 'Asset not found or missing filename.' }] };
-      }
-      const imageRes = await axios.get(asset.filename, { responseType: 'arraybuffer' });
-      const imageBuffer = Buffer.from(imageRes.data);
-      const { text: alt } = await generateText({
-        model: google('gemini-2.0-flash'),
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Describe this image for visually impaired users. Be concise and accurate.' },
-              { type: 'image', image: imageBuffer, mimeType: imageRes.headers['content-type'] || 'image/jpeg' }
-            ]
-          }
-        ]
-      });
-      await axios.put(buildURL(MANAGEMENT_BASE, `assets/${asset_id}`), { meta_data: { alt } }, { headers: getHeaders(MANAGEMENT_TOKEN) });
-      return { content: [{ type: 'text', text: JSON.stringify({ asset: { id: asset_id, alt } }) }] };
-    } catch (error: any) {
-      return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
-    }
-  });
-
-  server.tool('generate_meta', {
-    story_id: z.string()
-  }, async ({ story_id }) => {
-    try {
-      const q = toQuery({ token: PUBLIC_TOKEN });
-      const storyRes = await axios.get(`${CDN_BASE}/stories/${story_id}${q}`);
-      const story = storyRes.data.story;
-      if (!story || !story.content) {
-        return { isError: true, content: [{ type: 'text', text: 'Story not found.' }] };
-      }
-      const text = JSON.stringify(story.content);
-      const prompt = `Write an SEO title (max 60 chars) and meta description (max 155 chars) for this content.\nContent: ${text}\nReturn as JSON: {\"meta_title\": string, \"meta_description\": string}`;
-      const { object } = await generateObject({
-        model: google('gemini-2.0-flash'),
-        schema: z.object({ meta_title: z.string(), meta_description: z.string() }),
-        prompt
-      });
-      await axios.put(buildURL(MANAGEMENT_BASE, `stories/${story_id}`), { story: { content: { ...story.content, meta_title: object.meta_title, meta_description: object.meta_description } } }, { headers: getHeaders(MANAGEMENT_TOKEN) });
-      return { content: [{ type: 'text', text: JSON.stringify({ meta_title: object.meta_title, meta_description: object.meta_description }) }] };
-    } catch (error: any) {
-      return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
-    }
-  });
-
-  server.tool('auto_tag_story', {
-    story_id: z.string()
-  }, async ({ story_id }) => {
-    try {
-      const q = toQuery({ token: PUBLIC_TOKEN });
-      const storyRes = await axios.get(`${CDN_BASE}/stories/${story_id}${q}`);
-      const story = storyRes.data.story;
-      if (!story || !story.content) {
-        return { isError: true, content: [{ type: 'text', text: 'Story not found.' }] };
-      }
-      const text = JSON.stringify(story.content);
-      const prompt = `List 8 keywords summarizing this article. Return as a JSON array of strings.`;
-      const { object } = await generateObject({
-        model: google('gemini-2.0-flash'),
-        schema: z.array(z.string()),
-        prompt: `${prompt}\nContent: ${text}`
-      });
-      const tags: string[] = object;
-      const tagsRes = await axios.get(buildURL(MANAGEMENT_BASE, 'tags'), { headers: getHeaders(MANAGEMENT_TOKEN) });
-      const existingTags = (tagsRes.data?.tags || []).map((t: any) => t.name);
-      for (const tag of tags) {
-        if (!existingTags.includes(tag)) {
-          await axios.post(buildURL(MANAGEMENT_BASE, 'tags'), { name: tag }, { headers: getHeaders(MANAGEMENT_TOKEN) });
-        }
-      }
-      await axios.put(buildURL(MANAGEMENT_BASE, `stories/${story_id}`), { story: { tag_list: tags } }, { headers: getHeaders(MANAGEMENT_TOKEN) });
-      return { content: [{ type: 'text', text: JSON.stringify({ tags }) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
     }
@@ -724,10 +636,10 @@ export function storyblok(server: McpServer) {
     lang: z.string()
   }, async ({ story_id, lang }) => {
     try {
-      const res = await axios.put(
-        buildURL(MANAGEMENT_BASE, `stories/${story_id}/ai_translate`), 
+      const res = await api.put(
+        buildURL(managementBase, `stories/${story_id}/ai_translate`), 
         { lang, code: lang, overwrite: false }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data) }] };
     } catch (error: any) {
@@ -737,7 +649,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_access_tokens', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'api_keys'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'api_keys'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -746,7 +658,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_access_token', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `api_keys/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `api_keys/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -766,7 +678,7 @@ export function storyblok(server: McpServer) {
       if (params.min_cache !== undefined) api_key.min_cache = params.min_cache;
       if (params.story_ids !== undefined) api_key.story_ids = params.story_ids;
       if (params.branch_id !== undefined) api_key.branch_id = params.branch_id;
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'api_keys'), { api_key }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'api_keys'), { api_key }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -788,7 +700,7 @@ export function storyblok(server: McpServer) {
       if (params.min_cache !== undefined) api_key.min_cache = params.min_cache;
       if (params.story_ids !== undefined) api_key.story_ids = params.story_ids;
       if (params.branch_id !== undefined) api_key.branch_id = params.branch_id;
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `api_keys/${id}`), { api_key }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `api_keys/${id}`), { api_key }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -797,7 +709,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_access_token', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `api_keys/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `api_keys/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Access token ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -813,7 +725,7 @@ export function storyblok(server: McpServer) {
   }, async (params) => {
     try {
       const q = toQuery(params);
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `story_schedulings${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `story_schedulings${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -822,7 +734,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_story_scheduling', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `story_schedulings/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `story_schedulings/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -835,7 +747,7 @@ export function storyblok(server: McpServer) {
     language: z.string().optional()
   }, async (params) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'story_schedulings'), { story_scheduling: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'story_schedulings'), { story_scheduling: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -848,7 +760,7 @@ export function storyblok(server: McpServer) {
     language: z.string().optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `story_schedulings/${id}`), { story_scheduling: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `story_schedulings/${id}`), { story_scheduling: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -857,7 +769,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_story_scheduling', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `story_schedulings/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `story_schedulings/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Story scheduling ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -870,7 +782,7 @@ export function storyblok(server: McpServer) {
   }, async ({ page = 1, per_page = 25 }) => {
     try {
       const q = toQuery({ page, per_page });
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `presets${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `presets${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -879,7 +791,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_preset', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `presets/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `presets/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -896,7 +808,7 @@ export function storyblok(server: McpServer) {
     description: z.string().optional()
   }, async (params) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'presets'), { preset: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'presets'), { preset: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -914,7 +826,7 @@ export function storyblok(server: McpServer) {
     description: z.string().optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `presets/${id}`), { preset: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `presets/${id}`), { preset: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -923,7 +835,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_preset', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `presets/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `presets/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Preset ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -932,7 +844,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_webhooks', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'webhook_endpoints'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'webhook_endpoints'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -941,7 +853,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_webhook', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `webhook_endpoints/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `webhook_endpoints/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -956,10 +868,10 @@ export function storyblok(server: McpServer) {
     activated: z.boolean().optional()
   }, async (params) => {
     try {
-      const res = await axios.post(
-        buildURL(MANAGEMENT_BASE, 'webhook_endpoints'), 
+      const res = await api.post(
+        buildURL(managementBase, 'webhook_endpoints'), 
         { webhook_endpoint: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -976,10 +888,10 @@ export function storyblok(server: McpServer) {
     activated: z.boolean().optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(
-        buildURL(MANAGEMENT_BASE, `webhook_endpoints/${id}`), 
+      const res = await api.put(
+        buildURL(managementBase, `webhook_endpoints/${id}`), 
         { webhook_endpoint: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -989,7 +901,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_webhook', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `webhook_endpoints/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `webhook_endpoints/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Webhook ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -998,7 +910,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_component_folders', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'component_groups'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'component_groups'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1007,7 +919,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_component_folder', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `component_groups/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `component_groups/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1019,10 +931,10 @@ export function storyblok(server: McpServer) {
     parent_id: z.union([z.string(), z.number()]).optional()
   }, async (params) => {
     try {
-      const res = await axios.post(
-        buildURL(MANAGEMENT_BASE, 'component_groups'), 
+      const res = await api.post(
+        buildURL(managementBase, 'component_groups'), 
         { component_group: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1036,10 +948,10 @@ export function storyblok(server: McpServer) {
     parent_id: z.union([z.string(), z.number()]).optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(
-        buildURL(MANAGEMENT_BASE, `component_groups/${id}`), 
+      const res = await api.put(
+        buildURL(managementBase, `component_groups/${id}`), 
         { component_group: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1049,7 +961,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_component_folder', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `component_groups/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `component_groups/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Component folder ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1058,7 +970,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_space', {}, async () => {
     try {
-      const res = await axios.get(MANAGEMENT_BASE, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(managementBase, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1071,7 +983,7 @@ export function storyblok(server: McpServer) {
   }, async ({ page = 1, per_page = 25 }) => {
     try {
       const q = toQuery({ page, per_page });
-      const res = await axios.get(`${SPACES_BASE}${q}`, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(`${SPACES_BASE}${q}`, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1111,7 +1023,7 @@ export function storyblok(server: McpServer) {
     }).optional()
   }, async (params) => {
     try {
-      const res = await axios.post(SPACES_BASE, { space: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(SPACES_BASE, { space: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1160,8 +1072,8 @@ export function storyblok(server: McpServer) {
     }).optional()
   }, async ({ space_id, ...params }) => {
     try {
-      const res = await axios.put(buildURL(SPACES_BASE, space_id), { space: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(SPACES_BASE, space_id), { space: params }, 
+        { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1172,8 +1084,8 @@ export function storyblok(server: McpServer) {
     space_id: z.string()
   }, async ({ space_id }) => {
     try {
-      await axios.delete(buildURL(SPACES_BASE, space_id), 
-        { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(SPACES_BASE, space_id), 
+        { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Space ${space_id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1187,7 +1099,7 @@ export function storyblok(server: McpServer) {
     create_components: z.boolean().optional()
   }, async ({ space_id, name, duplicate_content = true, create_components = true }) => {
     try {
-      const res = await axios.post(buildURL(SPACES_BASE, `${space_id}/duplicate`), 
+      const res = await api.post(buildURL(SPACES_BASE, `${space_id}/duplicate`), 
         { 
           duplicate: { 
             name,
@@ -1195,7 +1107,7 @@ export function storyblok(server: McpServer) {
             create_components
           } 
         }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) });
+        { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1206,9 +1118,9 @@ export function storyblok(server: McpServer) {
     space_id: z.string(),
   }, async ({ space_id }) => {
     try {
-      const res = await axios.post(buildURL(SPACES_BASE, `${space_id}/backup`), 
+      const res = await api.post(buildURL(SPACES_BASE, `${space_id}/backup`), 
         {}, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) });
+        { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1217,7 +1129,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_space_roles', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'space_roles'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'space_roles'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1226,7 +1138,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_space_role', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `space_roles/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `space_roles/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1247,7 +1159,7 @@ export function storyblok(server: McpServer) {
     asset_folder_ids: z.array(z.number()).optional()
   }, async (params) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'space_roles'), { space_role: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'space_roles'), { space_role: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1269,7 +1181,7 @@ export function storyblok(server: McpServer) {
     asset_folder_ids: z.array(z.number()).optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `space_roles/${id}`), { space_role: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `space_roles/${id}`), { space_role: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1278,7 +1190,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_space_role', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `space_roles/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `space_roles/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Space role ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1291,7 +1203,7 @@ export function storyblok(server: McpServer) {
   }, async (params) => {
     try {
       const q = toQuery(params);
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `workflows${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `workflows${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1300,7 +1212,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_workflow', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `workflows/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `workflows/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1312,7 +1224,7 @@ export function storyblok(server: McpServer) {
     content_types: z.array(z.string())
   }, async (params) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, 'workflows'), { workflow: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, 'workflows'), { workflow: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1325,7 +1237,7 @@ export function storyblok(server: McpServer) {
     content_types: z.array(z.string()).optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(buildURL(MANAGEMENT_BASE, `workflows/${id}`), { workflow: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.put(buildURL(managementBase, `workflows/${id}`), { workflow: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1338,7 +1250,7 @@ export function storyblok(server: McpServer) {
     content_types: z.array(z.string())
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `workflows/${id}/duplicate`), { workflow: params }, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `workflows/${id}/duplicate`), { workflow: params }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1347,7 +1259,7 @@ export function storyblok(server: McpServer) {
   
   server.tool('delete_workflow', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `workflows/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `workflows/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Workflow ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1356,7 +1268,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('fetch_workflow_stages', {}, async () => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, 'workflow_stages'), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, 'workflow_stages'), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1365,7 +1277,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_workflow_stage', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `workflow_stages/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `workflow_stages/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1390,10 +1302,10 @@ export function storyblok(server: McpServer) {
     workflow_id: z.number().optional()
   }, async (params) => {
     try {
-      const res = await axios.post(
-        buildURL(MANAGEMENT_BASE, 'workflow_stages'), 
+      const res = await api.post(
+        buildURL(managementBase, 'workflow_stages'), 
         { workflow_stage: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1420,10 +1332,10 @@ export function storyblok(server: McpServer) {
     workflow_id: z.number().optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(
-        buildURL(MANAGEMENT_BASE, `workflow_stages/${id}`), 
+      const res = await api.put(
+        buildURL(managementBase, `workflow_stages/${id}`), 
         { workflow_stage: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1433,7 +1345,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_workflow_stage', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `workflow_stages/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `workflow_stages/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Workflow stage ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1445,7 +1357,7 @@ export function storyblok(server: McpServer) {
   }, async ({ with_story }) => {
     try {
       const q = with_story ? `?with_story=${with_story}` : '';
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `workflow_stage_changes${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `workflow_stage_changes${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1457,10 +1369,10 @@ export function storyblok(server: McpServer) {
     story_id: z.number()
   }, async ({ workflow_stage_id, story_id }) => {
     try {
-      const res = await axios.post(
-        buildURL(MANAGEMENT_BASE, 'workflow_stage_changes'), 
+      const res = await api.post(
+        buildURL(managementBase, 'workflow_stage_changes'), 
         { workflow_stage_change: { workflow_stage_id, story_id } }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1470,7 +1382,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_workflow_stage_change', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `workflow_stage_changes/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `workflow_stage_changes/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1483,7 +1395,7 @@ export function storyblok(server: McpServer) {
   }, async (params) => {
     try {
       const q = toQuery(params);
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `branches${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `branches${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1492,7 +1404,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_branch', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `branches/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `branches/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1506,10 +1418,10 @@ export function storyblok(server: McpServer) {
     position: z.number().optional()
   }, async (params) => {
     try {
-      const res = await axios.post(
-        buildURL(MANAGEMENT_BASE, 'branches'), 
+      const res = await api.post(
+        buildURL(managementBase, 'branches'), 
         { branch: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1525,10 +1437,10 @@ export function storyblok(server: McpServer) {
     position: z.number().optional()
   }, async ({ id, ...params }) => {
     try {
-      const res = await axios.put(
-        buildURL(MANAGEMENT_BASE, `branches/${id}`), 
+      const res = await api.put(
+        buildURL(managementBase, `branches/${id}`), 
         { branch: params }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1538,7 +1450,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('delete_branch', { id: z.string() }, async ({ id }) => {
     try {
-      await axios.delete(buildURL(MANAGEMENT_BASE, `branches/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      await api.delete(buildURL(managementBase, `branches/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: `Branch ${id} has been successfully deleted.` }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1547,7 +1459,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('deploy_branch', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.post(buildURL(MANAGEMENT_BASE, `branches/${id}/deploy`), {}, { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.post(buildURL(managementBase, `branches/${id}/deploy`), {}, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1562,7 +1474,7 @@ export function storyblok(server: McpServer) {
   }, async ({ id, ...params }) => {
     try {
       const q = toQuery(params);
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `branches/${id}/stories${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `branches/${id}/stories${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1577,7 +1489,7 @@ export function storyblok(server: McpServer) {
   }, async ({ source_id, target_id, ...params }) => {
     try {
       const q = toQuery({ ...params, source: source_id, target: target_id });
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `branches/compare${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `branches/compare${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1590,10 +1502,10 @@ export function storyblok(server: McpServer) {
     story_ids: z.array(z.number())
   }, async ({ source_branch_id, target_branch_id, story_ids }) => {
     try {
-      const res = await axios.post(
-        buildURL(MANAGEMENT_BASE, `branches/${target_branch_id}/stories/copy`), 
+      const res = await api.post(
+        buildURL(managementBase, `branches/${target_branch_id}/stories/copy`), 
         { source_branch_id, story_ids }, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1607,7 +1519,7 @@ export function storyblok(server: McpServer) {
   }, async ({ page = 1, per_page = 25 }) => {
     try {
       const q = toQuery({ page, per_page });
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `deployments${q}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `deployments${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -1624,10 +1536,10 @@ export function storyblok(server: McpServer) {
         payload.release_uuids = release_uuids;
       }
       
-      const res = await axios.post(
-        buildURL(MANAGEMENT_BASE, 'deployments'), 
+      const res = await api.post(
+        buildURL(managementBase, 'deployments'), 
         payload, 
-        { headers: getHeaders(MANAGEMENT_TOKEN) }
+        { headers: getHeaders(managementToken) }
       );
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -1637,7 +1549,7 @@ export function storyblok(server: McpServer) {
 
   server.tool('get_branch_deployment', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await axios.get(buildURL(MANAGEMENT_BASE, `deployments/${id}`), { headers: getHeaders(MANAGEMENT_TOKEN) });
+      const res = await api.get(buildURL(managementBase, `deployments/${id}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };

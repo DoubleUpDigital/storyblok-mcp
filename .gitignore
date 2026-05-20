@@ -125,3 +125,11 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Cloudflare Workers
+.wrangler/
+.dev.vars
+worker-configuration.d.ts
+
+# legacy tsc build output (we no longer compile to ./build)
+build/

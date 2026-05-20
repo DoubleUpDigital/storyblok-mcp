@@ -1,0 +1,8 @@
+name = "punch-storyblok-mcp"
+main = "src/worker.ts"
+account_id = "e86b8a49708c1237052c4062a9114576"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
