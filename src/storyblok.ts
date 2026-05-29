@@ -609,14 +609,14 @@ export function storyblok(server: McpServer, ctx: SbContext) {
     }
   });
 
-  server.tool('fetch_datasource_entries', { 
+  server.tool('fetch_datasource_entries', {
     datasource_id: z.string(),
     page: z.number().optional(),
     per_page: z.number().optional()
   }, async ({ datasource_id, page = 1, per_page = 25 }) => {
     try {
-      const q = toQuery({ page, per_page });
-      const res = await api.get(buildURL(managementBase, `datasources/${datasource_id}/entries${q}`), { headers: getHeaders(managementToken) });
+      const q = toQuery({ datasource_id, page, per_page });
+      const res = await api.get(buildURL(managementBase, `datasource_entries${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
