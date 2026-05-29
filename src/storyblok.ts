@@ -21,9 +21,9 @@ export function storyblok(server: McpServer, ctx: SbContext) {
     excluding_slugs: z.string().optional(),
     sort_by: z.string().optional(),
     search_term: z.string().optional()
-  }, async (params) => {
+  }, async ({ search_term, ...rest }) => {
     try {
-      const q = toQuery(params);
+      const q = toQuery({ ...rest, ...(search_term !== undefined ? { search: search_term } : {}) });
       const res = await api.get(buildURL(managementBase, `stories${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
@@ -508,9 +508,9 @@ export function storyblok(server: McpServer, ctx: SbContext) {
     search_term: z.string().optional(),
     page: z.number().optional(),
     per_page: z.number().optional()
-  }, async (params) => {
+  }, async ({ search_term, ...rest }) => {
     try {
-      const q = toQuery(params);
+      const q = toQuery({ ...rest, ...(search_term !== undefined ? { search: search_term } : {}) });
       const res = await api.get(buildURL(managementBase, `stories${q}`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
