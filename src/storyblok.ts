@@ -335,6 +335,27 @@ export function storyblok(server: McpServer, ctx: SbContext) {
     }
   });
 
+  server.tool('update_asset', {
+    id: z.string(),
+    alt: z.string().optional(),
+    title: z.string().optional(),
+    copyright: z.string().optional(),
+    focus: z.string().optional(),
+    asset_folder_id: z.union([z.number(), z.string(), z.null()]).optional(),
+    meta_data: z.record(z.unknown()).optional(),
+  }, async ({ id, ...rest }) => {
+    try {
+      const body: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rest)) {
+        if (v !== undefined) body[k] = v;
+      }
+      const res = await api.put(buildURL(managementBase, `assets/${id}`), body, { headers: getHeaders(managementToken) });
+      return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
+    } catch (error: any) {
+      return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
+    }
+  });
+
   server.tool('init_asset_upload', { filename: z.string(), size: z.number(), content_type: z.string() }, async ({ filename, size, content_type }) => {
     try {
       const res = await api.post(buildURL(managementBase, 'assets'), { filename, size, content_type }, { headers: getHeaders(managementToken) });
@@ -413,24 +434,53 @@ export function storyblok(server: McpServer, ctx: SbContext) {
     }
   });
 
-  server.tool('create_component', { name: z.string(), display_name: z.string().optional(), schema: z.record(z.unknown()), is_root: z.boolean().optional(), is_nestable: z.boolean().optional() }, async ({ name, display_name, schema, is_root = false, is_nestable = true }) => {
+  server.tool('create_component', {
+    name: z.string(),
+    display_name: z.string().optional(),
+    schema: z.record(z.unknown()),
+    is_root: z.boolean().optional(),
+    is_nestable: z.boolean().optional(),
+    preview_field: z.string().optional(),
+    component_group_uuid: z.string().optional(),
+    color: z.string().optional(),
+    icon: z.string().optional(),
+  }, async ({ name, display_name, schema, is_root = false, is_nestable = true, preview_field, component_group_uuid, color, icon }) => {
     try {
-      const componentData = { component: { name, display_name: display_name || name, schema, is_root, is_nestable } };
-      const res = await api.post(buildURL(managementBase, 'components'), componentData, { headers: getHeaders(managementToken) });
+      const component: Record<string, unknown> = { name, display_name: display_name || name, schema, is_root, is_nestable };
+      if (preview_field !== undefined) component.preview_field = preview_field;
+      if (component_group_uuid !== undefined) component.component_group_uuid = component_group_uuid;
+      if (color !== undefined) component.color = color;
+      if (icon !== undefined) component.icon = icon;
+      const res = await api.post(buildURL(managementBase, 'components'), { component }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
     }
   });
 
-  server.tool('update_component', { id: z.string(), name: z.string().optional(), display_name: z.string().optional(), schema: z.record(z.unknown()).optional(), is_root: z.boolean().optional(), is_nestable: z.boolean().optional() }, async ({ id, name, display_name, schema, is_root, is_nestable }) => {
+  server.tool('update_component', {
+    id: z.string(),
+    name: z.string().optional(),
+    display_name: z.string().optional(),
+    schema: z.record(z.unknown()).optional(),
+    is_root: z.boolean().optional(),
+    is_nestable: z.boolean().optional(),
+    preview_field: z.string().optional(),
+    component_group_uuid: z.union([z.string(), z.null()]).optional(),
+    color: z.string().optional(),
+    icon: z.string().optional(),
+  }, async ({ id, name, display_name, schema, is_root, is_nestable, preview_field, component_group_uuid, color, icon }) => {
     try {
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (name !== undefined) updateData.name = name;
       if (display_name !== undefined) updateData.display_name = display_name;
       if (schema !== undefined) updateData.schema = schema;
       if (is_root !== undefined) updateData.is_root = is_root;
       if (is_nestable !== undefined) updateData.is_nestable = is_nestable;
+      if (preview_field !== undefined) updateData.preview_field = preview_field;
+      if (component_group_uuid !== undefined) updateData.component_group_uuid = component_group_uuid;
+      if (color !== undefined) updateData.color = color;
+      if (icon !== undefined) updateData.icon = icon;
       const res = await api.put(buildURL(managementBase, `components/${id}`), { component: updateData }, { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
