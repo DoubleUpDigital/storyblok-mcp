@@ -116,7 +116,7 @@ export function storyblok(server: McpServer, ctx: SbContext) {
 
   server.tool('publish_story', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await api.post(buildURL(managementBase, `stories/${id}/publish`), {}, { headers: getHeaders(managementToken) });
+      const res = await api.get(buildURL(managementBase, `stories/${id}/publish`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -125,7 +125,7 @@ export function storyblok(server: McpServer, ctx: SbContext) {
 
   server.tool('unpublish_story', { id: z.string() }, async ({ id }) => {
     try {
-      const res = await api.post(buildURL(managementBase, `stories/${id}/unpublish`), {}, { headers: getHeaders(managementToken) });
+      const res = await api.get(buildURL(managementBase, `stories/${id}/unpublish`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
@@ -346,7 +346,7 @@ export function storyblok(server: McpServer, ctx: SbContext) {
 
   server.tool('complete_asset_upload', { asset_id: z.string() }, async ({ asset_id }) => {
     try {
-      const res = await api.post(buildURL(managementBase, `assets/${asset_id}/finish_upload`), {}, { headers: getHeaders(managementToken) });
+      const res = await api.get(buildURL(managementBase, `assets/${asset_id}/finish_upload`), { headers: getHeaders(managementToken) });
       return { content: [{ type: 'text', text: JSON.stringify(res.data, null, 2) }] };
     } catch (error: any) {
       return { isError: true, content: [{ type: 'text', text: `Error: ${error.message}` }] };
